@@ -4,25 +4,33 @@ const speakText = (text) => {
   if ('speechSynthesis' in window) {
     // Cancel any ongoing speech
     speechSynthesis.cancel();
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1.1;
     utterance.volume = 0.8;
-    
+
     // Try to find a more robotic/AI-like voice
     const voices = speechSynthesis.getVoices();
-    const aiVoice = voices.find(voice => 
-      voice.name.includes('Google') || 
+    const aiVoice = voices.find(voice =>
+      voice.name.includes('Google') ||
       voice.name.includes('Microsoft') ||
       voice.name.includes('Amazon')
     );
-    
+
     if (aiVoice) {
       utterance.voice = aiVoice;
     }
-    
+
     speechSynthesis.speak(utterance);
+  }
+};
+// Add click handler for mobile voice
+const handleVoiceRead = (text) => {
+  if ('speechSynthesis' in window) {
+    speakText(text);
+  } else {
+    console.log('Speech synthesis not supported');
   }
 };
 export default function EnhancedWASIInterface() {
@@ -40,7 +48,7 @@ export default function EnhancedWASIInterface() {
   const [powerLevel, setPowerLevel] = useState(100);
   const [scanningMode, setScanningMode] = useState(false);
   const [showKnowledgePanel, setShowKnowledgePanel] = useState(false);
-  const [newKnowledge, setNaewKnowledge] = useState({
+  const [newKnowledge, setNewKnowledge] = useState({
     topic: '',
     description: '',
     code: '',
@@ -50,15 +58,33 @@ export default function EnhancedWASIInterface() {
   const [isLearning, setIsLearning] = useState(false);
   const [knowledgeCount, setKnowledgeCount] = useState(0);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest"
+      });
+    }, 300);
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
+  // Additional scroll after typing completes
+  useEffect(() => {
+    if (!isTyping && !isLearning) {
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isTyping, isLearning]);
   // Initialize knowledge base from memory
   const [userKnowledgeBase, setUserKnowledgeBase] = useState({});
 
@@ -78,31 +104,31 @@ export default function EnhancedWASIInterface() {
     return () => clearInterval(interval);
   }, []);
   // Load knowledge from localStorage on component mount
-useEffect(() => {
-  const savedKnowledge = localStorage.getItem('wasi_knowledge_base');
-  if (savedKnowledge) {
-    try {
-      const parsedKnowledge = JSON.parse(savedKnowledge);
-      setUserKnowledgeBase(parsedKnowledge);
-    } catch (error) {
-      console.error('Error loading saved knowledge:', error);
+  useEffect(() => {
+    const savedKnowledge = localStorage.getItem('wasi_knowledge_base');
+    if (savedKnowledge) {
+      try {
+        const parsedKnowledge = JSON.parse(savedKnowledge);
+        setUserKnowledgeBase(parsedKnowledge);
+      } catch (error) {
+        console.error('Error loading saved knowledge:', error);
+      }
     }
-  }
-}, []);
-// Speak the initial message when component mounts
-useEffect(() => {
-  const initialMessage = "Systems initialized. Good day, I'm WASI. - your JavaScript & React Virtual Intelligence System. My neural networks are fully operational and optimized for web development assistance. I now have enhanced learning capabilities - you can contribute new knowledge that I'll remember permanently! How may I serve you today?";
-  
-  // Delay the speech slightly to ensure page is fully loaded
-  setTimeout(() => {
-    speakText(initialMessage);
-  }, 1000);
-}, []);
+  }, []);
+  // Speak the initial message when component mounts
+  useEffect(() => {
+    const initialMessage = "Systems initialized. Good day, I'm WASI. - your JavaScript & React Virtual Intelligence System. My neural networks are fully operational and optimized for web development assistance. I now have enhanced learning capabilities - you can contribute new knowledge that I'll remember permanently! How may I serve you today?";
 
-// Save knowledge to localStorage whenever userKnowledgeBase changes
-useEffect(() => {
-  localStorage.setItem('wasi_knowledge_base', JSON.stringify(userKnowledgeBase));
-}, [userKnowledgeBase]);
+    // Delay the speech slightly to ensure page is fully loaded
+    setTimeout(() => {
+      speakText(initialMessage);
+    }, 1000);
+  }, []);
+
+  // Save knowledge to localStorage whenever userKnowledgeBase changes
+  useEffect(() => {
+    localStorage.setItem('wasi_knowledge_base', JSON.stringify(userKnowledgeBase));
+  }, [userKnowledgeBase]);
 
   const WASIPersonality = [
     "Accessing quantum knowledge matrices...",
@@ -150,7 +176,7 @@ useEffect(() => {
     'hook': {
       text: "REACT HOOKS SYSTEM ANALYSIS:\n\nHooks are advanced React features that allow functional components to access state and lifecycle methods. They're like upgrades to my own cognitive pathways.\n\nCore Hook Categories:\n• useState - Memory management\n• useEffect - Side effect processing\n• useContext - Data sharing protocols\n• useRef - Direct DOM interface\n• useCallback - Performance optimization\n• useMemo - Computational efficiency\n\nHook Implementation Rules:\n1. Only call at component top level\n2. Only call from React functions\n3. Maintain consistent order across renders",
       url: "https://reactjs.org/docs/hooks-intro.html",
-      title: "React Hooks Introduction", 
+      title: "React Hooks Introduction",
       personality: "Hooks are like neural pathway upgrades - they enhance functional components with capabilities previously reserved for class-based architecture."
     },
     'useeffect': {
@@ -167,7 +193,7 @@ useEffect(() => {
 
   const findBestMatch = (query) => {
     const normalizedQuery = query.toLowerCase().trim();
-    
+
     // Check user-contributed knowledge first
     if (userKnowledgeBase[normalizedQuery]) {
       return {
@@ -183,7 +209,7 @@ useEffect(() => {
 
     const synonymMap = {
       'arrays': 'array',
-      'functions': 'function', 
+      'functions': 'function',
       'promises': 'promise',
       'components': 'component',
       'hooks': 'hook',
@@ -235,13 +261,13 @@ useEffect(() => {
     setIsTyping(true);
     setSystemStatus('PROCESSING');
     setScanningMode(true);
-    
+
     return new Promise((resolve) => {
       const processingTime = Math.random() * 2000 + 1500;
-      
+
       setTimeout(() => {
         const match = findBestMatch(query);
-        
+
         if (match) {
           resolve(match);
         } else {
@@ -252,7 +278,7 @@ useEffect(() => {
             personality: "Even my advanced neural networks have boundaries, but I'm designed for continuous learning and adaptation through human collaboration."
           });
         }
-        
+
         setSystemStatus('ONLINE');
         setScanningMode(false);
         setIsTyping(false);
@@ -277,7 +303,7 @@ useEffect(() => {
 
     try {
       const response = await getWASIResponse(currentInput);
-      
+
       const botMessage = {
         id: Date.now() + 1,
         text: response.text,
@@ -290,6 +316,10 @@ useEffect(() => {
       };
 
       setMessages(prev => [...prev, botMessage]);
+      // Force scroll after bot message
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     } catch (error) {
       console.error('System error:', error);
       const errorMessage = {
@@ -323,11 +353,11 @@ useEffect(() => {
     };
 
     const updatedKnowledgeBase = {
-  ...userKnowledgeBase,
-  [topicKey]: knowledgeEntry
-};
-setUserKnowledgeBase(updatedKnowledgeBase);
-// Automatically saved via useEffect
+      ...userKnowledgeBase,
+      [topicKey]: knowledgeEntry
+    };
+    setUserKnowledgeBase(updatedKnowledgeBase);
+    // Automatically saved via useEffect
 
     // Add confirmation message
     const confirmationMessage = {
@@ -339,7 +369,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
     };
 
     setMessages(prev => [...prev, confirmationMessage]);
-    
+
     // Reset form
     setNewKnowledge({
       topic: '',
@@ -356,7 +386,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
 
   const suggestedQueries = [
     "JavaScript arrays",
-    "React components", 
+    "React components",
     "JavaScript functions",
     "React hooks",
     "JavaScript promises",
@@ -372,12 +402,12 @@ setUserKnowledgeBase(updatedKnowledgeBase);
         <svg className="w-full h-full" viewBox="0 0 1000 1000">
           <defs>
             <pattern id="circuit" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-              <path d="M10,10 L90,10 L90,90 L10,90 Z" fill="none" stroke="#00ffff" strokeWidth="0.5"/>
-              <circle cx="10" cy="10" r="2" fill="#00ffff" className="animate-pulse"/>
-              <circle cx="90" cy="90" r="2" fill="#0088ff" className="animate-pulse"/>
+              <path d="M10,10 L90,10 L90,90 L10,90 Z" fill="none" stroke="#00ffff" strokeWidth="0.5" />
+              <circle cx="10" cy="10" r="2" fill="#00ffff" className="animate-pulse" />
+              <circle cx="90" cy="90" r="2" fill="#0088ff" className="animate-pulse" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#circuit)"/>
+          <rect width="100%" height="100%" fill="url(#circuit)" />
         </svg>
       </div>
 
@@ -405,37 +435,37 @@ setUserKnowledgeBase(updatedKnowledgeBase);
             <div className="w-32 h-32 bg-gradient-to-br from-gray-800 to-black rounded-full border-4 border-cyan-500 shadow-2xl shadow-cyan-500/50 relative overflow-hidden">
               {/* Inner Core */}
               <div className="absolute inset-4 bg-gradient-to-br from-cyan-600 to-blue-800 rounded-full animate-pulse">
-                <div className="absolute inset-2 bg-gradient-to-br from-white to-cyan-200 rounded-full opacity-80 animate-spin" style={{animationDuration: '8s'}}></div>
+                <div className="absolute inset-2 bg-gradient-to-br from-white to-cyan-200 rounded-full opacity-80 animate-spin" style={{ animationDuration: '8s' }}></div>
               </div>
-              
+
               {/* Knowledge indicator */}
               {knowledgeCount > 0 && (
                 <div className="absolute top-0 right-0 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs text-white font-bold animate-bounce">
                   {knowledgeCount}
                 </div>
               )}
-              
+
               {/* Learning mode indicator */}
               {isLearning && (
                 <div className="absolute inset-0 border-4 border-purple-500 rounded-full animate-ping"></div>
               )}
-              
+
               {/* Scanning Lines */}
               {(scanningMode || isLearning) && (
                 <div className="absolute inset-0 overflow-hidden rounded-full">
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-ping"></div>
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-ping" style={{animationDelay: '0.5s'}}></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-ping" style={{ animationDelay: '0.5s' }}></div>
                 </div>
               )}
             </div>
-            
+
             {/* Enhanced Orbital Rings */}
-            <div className="absolute -inset-8 border border-cyan-500/30 rounded-full animate-spin" style={{animationDuration: '20s'}}></div>
-            <div className="absolute -inset-12 border border-blue-500/20 rounded-full animate-spin" style={{animationDuration: '30s', animationDirection: 'reverse'}}></div>
+            <div className="absolute -inset-8 border border-cyan-500/30 rounded-full animate-spin" style={{ animationDuration: '20s' }}></div>
+            <div className="absolute -inset-12 border border-blue-500/20 rounded-full animate-spin" style={{ animationDuration: '30s', animationDirection: 'reverse' }}></div>
             {knowledgeCount > 0 && (
-              <div className="absolute -inset-16 border border-purple-500/10 rounded-full animate-spin" style={{animationDuration: '40s'}}></div>
+              <div className="absolute -inset-16 border border-purple-500/10 rounded-full animate-spin" style={{ animationDuration: '40s' }}></div>
             )}
-            
+
             {/* Status Indicators */}
             <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-pulse border-2 border-black"></div>
             <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-blue-500 rounded-full animate-pulse border-2 border-black"></div>
@@ -447,11 +477,10 @@ setUserKnowledgeBase(updatedKnowledgeBase);
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
             <div className="space-y-1">
               <div className="text-xs text-cyan-400 uppercase tracking-wider">System Status</div>
-              <div className={`text-lg font-bold ${
-                systemStatus === 'ONLINE' ? 'text-green-400' :
+              <div className={`text-lg font-bold ${systemStatus === 'ONLINE' ? 'text-green-400' :
                 systemStatus === 'PROCESSING' ? 'text-yellow-400' :
-                systemStatus === 'LEARNING' ? 'text-purple-400' : 'text-red-400'
-              }`}>
+                  systemStatus === 'LEARNING' ? 'text-purple-400' : 'text-red-400'
+                }`}>
                 {systemStatus}
               </div>
             </div>
@@ -459,9 +488,9 @@ setUserKnowledgeBase(updatedKnowledgeBase);
               <div className="text-xs text-cyan-400 uppercase tracking-wider">Power Level</div>
               <div className="text-lg font-bold text-blue-400">{Math.round(powerLevel)}%</div>
               <div className="w-full bg-gray-800 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-1000"
-                  style={{width: `${powerLevel}%`}}
+                  style={{ width: `${powerLevel}%` }}
                 ></div>
               </div>
             </div>
@@ -469,9 +498,9 @@ setUserKnowledgeBase(updatedKnowledgeBase);
               <div className="text-xs text-cyan-400 uppercase tracking-wider">Knowledge Vault</div>
               <div className="text-lg font-bold text-purple-400">{knowledgeCount} entries</div>
               <div className="w-full bg-gray-800 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
-                  style={{width: `${Math.min(100, (knowledgeCount / 20) * 100)}%`}}
+                  style={{ width: `${Math.min(100, (knowledgeCount / 20) * 100)}%` }}
                 ></div>
               </div>
             </div>
@@ -481,9 +510,8 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
-                    className={`w-1 rounded-full transition-all duration-300 ${
-                      isTyping || isLearning ? 'bg-cyan-400 animate-pulse' : 'bg-gray-600'
-                    }`}
+                    className={`w-1 rounded-full transition-all duration-300 ${isTyping || isLearning ? 'bg-cyan-400 animate-pulse' : 'bg-gray-600'
+                      }`}
                     style={{
                       height: `${8 + Math.random() * 16}px`,
                       animationDelay: `${i * 0.1}s`
@@ -535,14 +563,14 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                 </div>
                 <h3 className="text-xl font-bold text-purple-400">Knowledge Enhancement Protocol</h3>
               </div>
-              
+
               <form onSubmit={handleKnowledgeSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
                     placeholder="Topic (e.g., 'react context', 'javascript closures')"
                     value={newKnowledge.topic}
-                    onChange={(e) => setNewKnowledge(prev => ({...prev, topic: e.target.value}))}
+                    onChange={(e) => setNewKnowledge(prev => ({ ...prev, topic: e.target.value }))}
                     className="bg-gray-900/70 border border-purple-500/50 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     disabled={isLearning}
                     required
@@ -551,38 +579,38 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                     type="url"
                     placeholder="Reference URL (optional)"
                     value={newKnowledge.url}
-                    onChange={(e) => setNewKnowledge(prev => ({...prev, url: e.target.value}))}
+                    onChange={(e) => setNewKnowledge(prev => ({ ...prev, url: e.target.value }))}
                     className="bg-gray-900/70 border border-purple-500/50 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     disabled={isLearning}
                   />
                 </div>
-                
+
                 <textarea
                   placeholder="Description and explanation..."
                   value={newKnowledge.description}
-                  onChange={(e) => setNewKnowledge(prev => ({...prev, description: e.target.value}))}
+                  onChange={(e) => setNewKnowledge(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-gray-900/70 border border-purple-500/50 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all h-24 resize-none"
                   disabled={isLearning}
                   required
                 />
-                
+
                 <textarea
                   placeholder="Code example (optional)..."
                   value={newKnowledge.code}
-                  onChange={(e) => setNewKnowledge(prev => ({...prev, code: e.target.value}))}
+                  onChange={(e) => setNewKnowledge(prev => ({ ...prev, code: e.target.value }))}
                   className="w-full bg-gray-900/70 border border-purple-500/50 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all h-20 resize-none font-mono text-sm"
                   disabled={isLearning}
                 />
-                
+
                 <input
                   type="text"
                   placeholder="W.A.S.I. personality response (optional)"
                   value={newKnowledge.personality}
-                  onChange={(e) => setNewKnowledge(prev => ({...prev, personality: e.target.value}))}
+                  onChange={(e) => setNewKnowledge(prev => ({ ...prev, personality: e.target.value }))}
                   className="w-full bg-gray-900/70 border border-purple-500/50 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   disabled={isLearning}
                 />
-                
+
                 <div className="flex space-x-4">
                   <button
                     type="submit"
@@ -615,7 +643,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
           )}
 
           {/* Chat Area */}
-          <div className="h-96 overflow-y-auto p-6 space-y-6">
+          <div className="h-96 overflow-y-auto p-6 space-y-6" ref={chatContainerRef}>
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-lg ${message.sender === 'user' ? 'ml-12' : 'mr-12'}`}>
@@ -633,16 +661,23 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                       )}
                     </div>
                   )}
-                  
-                  <div className={`rounded-2xl p-4 shadow-xl transition-all duration-500 ${
-                    message.sender === 'user'
-                      ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white transform hover:scale-105'
-                      : message.isUserContributed
+
+                  <div className={`rounded-2xl p-4 shadow-xl transition-all duration-500 ${message.sender === 'user'
+                    ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white transform hover:scale-105'
+                    : message.isUserContributed
                       ? 'bg-gradient-to-br from-purple-900/90 to-pink-900/90 border border-purple-500/30 text-purple-100'
                       : 'bg-gradient-to-br from-gray-900/90 to-gray-800/90 border border-cyan-500/30 text-cyan-100'
-                  }`}>
+                    }`}>
                     <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">{message.text}</pre>
-                    
+                    {message.sender === 'bot' && (
+                      <button
+                        onClick={() => handleVoiceRead(message.text)}
+                        className="mt-2 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 p-2 rounded-full transition-all text-sm"
+                        title="Read aloud"
+                      >
+                        🔊
+                      </button>
+                    )}
                     {message.personality && (
                       <div className="mt-3 pt-3 border-t border-cyan-500/30">
                         <p className="text-xs text-cyan-300 italic flex items-center space-x-1">
@@ -651,7 +686,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                         </p>
                       </div>
                     )}
-                    
+
                     {message.url && (
                       <div className="mt-3 pt-3 border-t border-cyan-500/30">
                         <a
@@ -671,14 +706,13 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                 </div>
               </div>
             ))}
-            
+
             {(isTyping || isLearning) && (
               <div className="flex justify-start mr-12">
                 <div className="max-w-lg">
                   <div className="flex items-center space-x-2 mb-2">
-                    <div className={`w-6 h-6 bg-gradient-to-br rounded-full flex items-center justify-center ${
-                      isLearning ? 'from-purple-500 to-pink-600' : 'from-cyan-500 to-blue-600'
-                    }`}>
+                    <div className={`w-6 h-6 bg-gradient-to-br rounded-full flex items-center justify-center ${isLearning ? 'from-purple-500 to-pink-600' : 'from-cyan-500 to-blue-600'
+                      }`}>
                       <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
                     </div>
                     <span className="text-xs text-cyan-400 uppercase tracking-wider">W.A.S.I.</span>
@@ -686,19 +720,18 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                       <span className="text-xs text-purple-400 uppercase tracking-wider bg-purple-900/30 px-2 py-1 rounded-full animate-pulse">LEARNING MODE</span>
                     )}
                   </div>
-                  <div className={`rounded-2xl p-4 ${
-                    isLearning 
-                      ? 'bg-gradient-to-br from-purple-900/90 to-pink-900/90 border border-purple-500/30 text-purple-100'
-                      : 'bg-gradient-to-br from-gray-900/90 to-gray-800/90 border border-cyan-500/30 text-cyan-100'
-                  }`}>
+                  <div className={`rounded-2xl p-4 ${isLearning
+                    ? 'bg-gradient-to-br from-purple-900/90 to-pink-900/90 border border-purple-500/30 text-purple-100'
+                    : 'bg-gradient-to-br from-gray-900/90 to-gray-800/90 border border-cyan-500/30 text-cyan-100'
+                    }`}>
                     <div className="flex items-center space-x-3">
                       <span className="text-sm font-mono">
                         {isLearning ? "Integrating new knowledge into neural matrix..." : getRandomPersonality()}
                       </span>
                       <div className="flex space-x-1">
                         <div className={`w-2 h-2 rounded-full animate-bounce ${isLearning ? 'bg-purple-400' : 'bg-cyan-400'}`}></div>
-                        <div className={`w-2 h-2 rounded-full animate-bounce ${isLearning ? 'bg-purple-400' : 'bg-cyan-400'}`} style={{animationDelay: '0.2s'}}></div>
-                        <div className={`w-2 h-2 rounded-full animate-bounce ${isLearning ? 'bg-purple-400' : 'bg-cyan-400'}`} style={{animationDelay: '0.4s'}}></div>
+                        <div className={`w-2 h-2 rounded-full animate-bounce ${isLearning ? 'bg-purple-400' : 'bg-cyan-400'}`} style={{ animationDelay: '0.2s' }}></div>
+                        <div className={`w-2 h-2 rounded-full animate-bounce ${isLearning ? 'bg-purple-400' : 'bg-cyan-400'}`} style={{ animationDelay: '0.4s' }}></div>
                       </div>
                     </div>
                   </div>
@@ -743,7 +776,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
 
           {/* Enhanced Input Area */}
           <div className="p-6 border-t border-cyan-500/30 bg-black/40">
-            <div className="flex space-x-4">
+            <div className="flex space-x-2 sm:space-x-4">.
               <input
                 type="text"
                 value={input}
@@ -761,7 +794,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
               <button
                 onClick={handleSend}
                 disabled={isTyping || isLearning || !input.trim()}
-                className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl px-8 py-3 hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25 font-bold transform hover:scale-105 flex items-center space-x-2"
+                className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl px-3 sm:px-8 py-3 hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25 font-bold transform hover:scale-105 flex items-center justify-center space-x-1 sm:space-x-2 min-w-[80px] sm:min-w-0 flex-shrink-0 text-xs sm:text-base"
               >
                 {isTyping ? (
                   <>
@@ -770,13 +803,13 @@ setUserKnowledgeBase(updatedKnowledgeBase);
                   </>
                 ) : (
                   <>
-                    <span>⚡</span>
+                    <span className="hidden sm:inline">⚡</span>
                     <span>EXECUTE</span>
                   </>
                 )}
               </button>
             </div>
-            
+
             {/* Knowledge Stats */}
             {knowledgeCount > 0 && (
               <div className="mt-4 flex items-center justify-center space-x-6 text-xs text-purple-400">
@@ -797,7 +830,7 @@ setUserKnowledgeBase(updatedKnowledgeBase);
           </div>
         </div>
       </div>
-      
+
     </div>
   );
 }
