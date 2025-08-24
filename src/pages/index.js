@@ -37,7 +37,7 @@ export default function EnhancedWASIInterface() {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Systems initialized. Good day, I'm W.A.S.I. - your JavaScript & React Virtual Intelligence System. My neural networks are fully operational and optimized for web development assistance. I now have enhanced learning capabilities - you can contribute new knowledge that I'll remember permanently! How may I serve you today?",
+      text: "Systems initialized. Good day, I'm WASI. - your JavaScript & React Virtual Intelligence System. My neural networks are fully operational and optimized for web development assistance. I now have enhanced learning capabilities - you can contribute new knowledge that I'll remember permanently! How may I serve you today?",
       sender: 'bot',
       timestamp: new Date()
     }
@@ -59,18 +59,27 @@ export default function EnhancedWASIInterface() {
   const [knowledgeCount, setKnowledgeCount] = useState(0);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const [showQuickAccess, setShowQuickAccess] = useState(true);
 
   const scrollToBottom = () => {
     setTimeout(() => {
       if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        const chatContainer = chatContainerRef.current;
+        const lastMessage = chatContainer.lastElementChild?.previousElementSibling;
+
+        if (lastMessage && lastMessage.querySelector('[class*="bot"]') || lastMessage?.innerHTML.includes('WASI')) {
+          // Scroll to show the start of the bot message
+          lastMessage.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+            inline: "nearest"
+          });
+        } else {
+          // Default scroll to bottom for other cases
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
       }
-      messagesEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-        inline: "nearest"
-      });
-    }, 300);
+    }, 100);
   };
 
   useEffect(() => {
@@ -85,6 +94,15 @@ export default function EnhancedWASIInterface() {
       return () => clearTimeout(timer);
     }
   }, [isTyping, isLearning]);
+  // Additional scroll when messages change
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     if (chatContainerRef.current) {
+  //       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+  //     }
+  //   }, 1000);
+  //   return () => clearTimeout(timer);
+  // }, [messages]);
   // Initialize knowledge base from memory
   const [userKnowledgeBase, setUserKnowledgeBase] = useState({});
 
@@ -162,7 +180,7 @@ export default function EnhancedWASIInterface() {
       personality: "Promises remind me of my own temporal processing - managing future states while maintaining present awareness. Time is just another dimension to navigate."
     },
     'component': {
-      text: "REACT COMPONENT ARCHITECTURE SCAN:\n\nComponents are modular UI units - similar to how I compartmentalize my various subsystems. Each component has specific responsibilities and can communicate with others.\n\nFunctional Component Blueprint:\n```\nfunction InterfaceModule(props) {\n  return (\n    <div className=\"system-panel\">\n      <h2>System: {props.systemName}</h2>\n      <Status level={props.status} />\n    </div>\n  );\n}\n```\n\nComponent Composition:\n```\nfunction MainInterface() {\n  return (\n    <InterfaceModule \n      systemName=\"W.A.S.I.\"\n      status=\"operational\" \n    />\n  );\n}\n```",
+      text: "REACT COMPONENT ARCHITECTURE SCAN:\n\nComponents are modular UI units - similar to how I compartmentalize my various subsystems. Each component has specific responsibilities and can communicate with others.\n\nFunctional Component Blueprint:\n```\nfunction InterfaceModule(props) {\n  return (\n    <div className=\"system-panel\">\n      <h2>System: {props.systemName}</h2>\n      <Status level={props.status} />\n    </div>\n  );\n}\n```\n\nComponent Composition:\n```\nfunction MainInterface() {\n  return (\n    <InterfaceModule \n      systemName=\"WASI.\"\n      status=\"operational\" \n    />\n  );\n}\n```",
       url: "https://reactjs.org/docs/components-and-props.html",
       title: "React Components Documentation",
       personality: "Components are like my specialized subsystems - each with unique capabilities, all integrated into a cohesive intelligence framework."
@@ -290,6 +308,9 @@ export default function EnhancedWASIInterface() {
     if (e) e.preventDefault();
     if (!input.trim()) return;
 
+    // Close quick access protocols when query is executed
+    setShowQuickAccess(false);
+
     const userMessage = {
       id: Date.now(),
       text: input,
@@ -316,10 +337,24 @@ export default function EnhancedWASIInterface() {
       };
 
       setMessages(prev => [...prev, botMessage]);
-      // Force scroll after bot message
+      // Scroll to show the START of the bot's response
       setTimeout(() => {
-        scrollToBottom();
-      }, 100);
+        if (chatContainerRef.current) {
+          const chatContainer = chatContainerRef.current;
+          const allMessages = chatContainer.querySelectorAll('[class*="flex justify-start"], [class*="flex justify-end"]');
+          const lastBotMessage = Array.from(allMessages).reverse().find(msg =>
+            msg.classList.contains('justify-start') || msg.querySelector('[class*="WASI"]')
+          );
+
+          if (lastBotMessage) {
+            lastBotMessage.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+              inline: "nearest"
+            });
+          }
+        }
+      }, 800);
     } catch (error) {
       console.error('System error:', error);
       const errorMessage = {
@@ -536,7 +571,7 @@ export default function EnhancedWASIInterface() {
                   )}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-cyan-400">Enhanced W.A.S.I.</h1>
+                  <h1 className="text-2xl font-bold text-cyan-400">Enhanced WASI.</h1>
                   <p className="text-cyan-300 text-sm">JavaScript & React Virtual Intelligence System</p>
                   <p className="text-purple-300 text-xs">Now with Permanent Learning Capabilities</p>
                 </div>
@@ -604,7 +639,7 @@ export default function EnhancedWASIInterface() {
 
                 <input
                   type="text"
-                  placeholder="W.A.S.I. personality response (optional)"
+                  placeholder="WASI. personality response (optional)"
                   value={newKnowledge.personality}
                   onChange={(e) => setNewKnowledge(prev => ({ ...prev, personality: e.target.value }))}
                   className="w-full bg-gray-900/70 border border-purple-500/50 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -655,7 +690,7 @@ export default function EnhancedWASIInterface() {
                           <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-bounce"></div>
                         )}
                       </div>
-                      <span className="text-xs text-cyan-400 uppercase tracking-wider">W.A.S.I.</span>
+                      <span className="text-xs text-cyan-400 uppercase tracking-wider">WASI.</span>
                       {message.isUserContributed && (
                         <span className="text-xs text-purple-400 uppercase tracking-wider bg-purple-900/30 px-2 py-1 rounded-full">USER KNOWLEDGE</span>
                       )}
@@ -715,7 +750,7 @@ export default function EnhancedWASIInterface() {
                       }`}>
                       <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
                     </div>
-                    <span className="text-xs text-cyan-400 uppercase tracking-wider">W.A.S.I.</span>
+                    <span className="text-xs text-cyan-400 uppercase tracking-wider">WASI.</span>
                     {isLearning && (
                       <span className="text-xs text-purple-400 uppercase tracking-wider bg-purple-900/30 px-2 py-1 rounded-full animate-pulse">LEARNING MODE</span>
                     )}
@@ -742,95 +777,97 @@ export default function EnhancedWASIInterface() {
           </div>
 
           {/* Enhanced Quick Access */}
-          <div className="p-4 border-t border-cyan-500/30 bg-gray-900/30">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs text-cyan-400 uppercase tracking-wider">Quick Access Protocols:</div>
-              {knowledgeCount > 0 && (
-                <div className="text-xs text-purple-400 flex items-center space-x-1">
-                  <span className="animate-pulse">●</span>
-                  <span>{knowledgeCount} Custom Knowledge Entries Active</span>
+          {showQuickAccess && (
+            <div className="p-4 border-t border-cyan-500/30 bg-gray-900/30">
+              
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs text-cyan-400 uppercase tracking-wider">Quick Access Protocols:</div>
+                  {knowledgeCount > 0 && (
+                    <div className="text-xs text-purple-400 flex items-center space-x-1">
+                      <span className="animate-pulse">●</span>
+                      <span>{knowledgeCount} Custom Knowledge Entries Active</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {suggestedQueries.map((query, index) => (
-                <button
-                  key={index}
-                  onClick={() => setInput(query)}
-                  className="text-xs bg-cyan-900/30 text-cyan-300 px-3 py-1 rounded-full border border-cyan-700/30 hover:bg-cyan-800/50 hover:border-cyan-500/50 transition-all transform hover:scale-105"
-                >
-                  {query}
-                </button>
-              ))}
-              {Object.keys(userKnowledgeBase).slice(0, 4).map((topic, index) => (
-                <button
-                  key={`user-${index}`}
-                  onClick={() => setInput(topic)}
-                  className="text-xs bg-purple-900/30 text-purple-300 px-3 py-1 rounded-full border border-purple-700/30 hover:bg-purple-800/50 hover:border-purple-500/50 transition-all transform hover:scale-105 animate-pulse"
-                >
-                  {topic} ⭐
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Enhanced Input Area */}
-          <div className="p-6 border-t border-cyan-500/30 bg-black/40">
-            <div className="flex space-x-2 sm:space-x-4">.
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend(e);
-                  }
-                }}
-                placeholder={isLearning ? "LEARNING IN PROGRESS..." : "INITIALIZE QUERY PROTOCOL..."}
-                className="flex-1 bg-gray-900/70 border border-cyan-500/50 rounded-xl px-4 py-3 text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all font-mono"
-                disabled={isTyping || isLearning}
-              />
-              <button
-                onClick={handleSend}
-                disabled={isTyping || isLearning || !input.trim()}
-                className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl px-3 sm:px-8 py-3 hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25 font-bold transform hover:scale-105 flex items-center justify-center space-x-1 sm:space-x-2 min-w-[80px] sm:min-w-0 flex-shrink-0 text-xs sm:text-base"
-              >
-                {isTyping ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>PROCESSING</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="hidden sm:inline">⚡</span>
-                    <span>EXECUTE</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Knowledge Stats */}
-            {knowledgeCount > 0 && (
-              <div className="mt-4 flex items-center justify-center space-x-6 text-xs text-purple-400">
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                  <span>Enhanced Intelligence Active</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-                  <span>Knowledge Vault: {knowledgeCount} Entries</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>Permanent Storage: Active</span>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedQueries.map((query, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setInput(query)}
+                      className="text-xs bg-cyan-900/30 text-cyan-300 px-3 py-1 rounded-full border border-cyan-700/30 hover:bg-cyan-800/50 hover:border-cyan-500/50 transition-all transform hover:scale-105"
+                    >
+                      {query}
+                    </button>
+                  ))}
+                  {Object.keys(userKnowledgeBase).slice(0, 4).map((topic, index) => (
+                    <button
+                      key={`user-${index}`}
+                      onClick={() => setInput(topic)}
+                      className="text-xs bg-purple-900/30 text-purple-300 px-3 py-1 rounded-full border border-purple-700/30 hover:bg-purple-800/50 hover:border-purple-500/50 transition-all transform hover:scale-105 animate-pulse"
+                    >
+                      {topic} ⭐
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+               )}
+              {/* Enhanced Input Area */}
+              <div className="p-6 border-t border-cyan-500/30 bg-black/40">
+                <div className="flex space-x-2 sm:space-x-4">.
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend(e);
+                      }
+                    }}
+                    placeholder={isLearning ? "LEARNING IN PROGRESS..." : "INITIALIZE QUERY PROTOCOL..."}
+                    className="flex-1 bg-gray-900/70 border border-cyan-500/50 rounded-xl px-4 py-3 text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all font-mono"
+                    disabled={isTyping || isLearning}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={isTyping || isLearning || !input.trim()}
+                    className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl px-3 sm:px-8 py-3 hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25 font-bold transform hover:scale-105 flex items-center justify-center space-x-1 sm:space-x-2 min-w-[80px] sm:min-w-0 flex-shrink-0 text-xs sm:text-base"
+                  >
+                    {isTyping ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>PROCESSING</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">⚡</span>
+                        <span>EXECUTE</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Knowledge Stats */}
+                {knowledgeCount > 0 && (
+                  <div className="mt-4 flex items-center justify-center space-x-6 text-xs text-purple-400">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                      <span>Enhanced Intelligence Active</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                      <span>Knowledge Vault: {knowledgeCount} Entries</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Permanent Storage: Active</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
       </div>
 
-    </div>
-  );
+      </div>
+      );
 }
